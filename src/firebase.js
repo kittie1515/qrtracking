@@ -24,11 +24,25 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-const app = initializeApp(firebaseConfig);
-const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
-const db = getFirestore(app);
+let app, analytics, db;
+
+try {
+  if (firebaseConfig.apiKey) {
+    app = initializeApp(firebaseConfig);
+    analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
+    db = getFirestore(app);
+  } else {
+    console.warn("⚠️ Firebase configuration is missing! Please check environment variables.");
+  }
+} catch (error) {
+  console.error("Error initializing Firebase:", error);
+}
 
 export const logScanToFirebase = async (scanData) => {
+  if (!db) {
+    console.error("Cannot log to Firebase: Database not initialized.");
+    return;
+  }
   try {
     const docRef = await addDoc(collection(db, "scans"), scanData);
     console.log("Document written with ID: ", docRef.id);
@@ -38,14 +52,25 @@ export const logScanToFirebase = async (scanData) => {
 };
 
 export const getUnsyncedScans = async () => {
-  const querySnapshot = await getDocs(collection(db, "scans"));
-  const scans = [];
-  querySnapshot.forEach((doc) => {
-    scans.push({ id: doc.id, ...doc.data() });
-  });
-  return scans;
+  if (!db) return [];
+  try {
+    const querySnapshot = await getDocs(collection(db, "scans"));
+    const scans = [];
+    querySnapshot.forEach((doc) => {
+      scans.push({ id: doc.id, ...doc.data() });
+    });
+    return scans;
+  } catch (error) {
+    console.error("Error fetching scans:", error);
+    return [];
+  }
 };
 
 export const deleteScanFromFirebase = async (id) => {
-  await deleteDoc(doc(db, "scans", id));
+  if (!db) return;
+  try {
+    await deleteDoc(doc(db, "scans", id));
+  } catch (error) {
+    console.error("Error deleting scan:", error);
+  }
 };
