@@ -1,7 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { useGoogleLogin } from '@react-oauth/google';
-import { getUnsyncedScans, deleteScanFromFirebase } from '../firebase';
 
 export default function Dashboard() {
   const [campaign, setCampaign] = useState('');
@@ -9,15 +7,6 @@ export default function Dashboard() {
   const [dest, setDest] = useState('https://daynite.app');
   const [domain, setDomain] = useState(window.location.origin);
   const [generatedUrl, setGeneratedUrl] = useState('');
-
-  const [unsyncedCount, setUnsyncedCount] = useState(0);
-  const [spreadsheetId, setSpreadsheetId] = useState('');
-  const [syncing, setSyncing] = useState(false);
-
-  useEffect(() => {
-    // Fetch unsynced count on load
-    getUnsyncedScans().then(scans => setUnsyncedCount(scans.length)).catch(console.error);
-  }, []);
 
   const handleGenerate = (e) => {
     e.preventDefault();
@@ -30,62 +19,6 @@ export default function Dashboard() {
     
     setGeneratedUrl(url.toString());
   };
-
-  const loginAndSync = useGoogleLogin({
-    scope: 'https://www.googleapis.com/auth/spreadsheets',
-    onSuccess: async (tokenResponse) => {
-      if (!spreadsheetId) {
-        alert("Vui lòng nhập Spreadsheet ID trước khi đồng bộ.");
-        return;
-      }
-      setSyncing(true);
-      try {
-        const scans = await getUnsyncedScans();
-        if (scans.length === 0) {
-          alert("Không có dữ liệu mới để đồng bộ.");
-          setSyncing(false);
-          return;
-        }
-
-        const values = scans.map(scan => [
-          scan.timestamp,
-          scan.campaign,
-          scan.utm_source,
-          scan.userAgent
-        ]);
-
-        // Call Google Sheets API
-        const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Sheet1!A:D:append?valueInputOption=USER_ENTERED`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${tokenResponse.access_token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ values })
-        });
-
-        if (!response.ok) {
-          throw new Error("Lỗi khi ghi vào Google Sheets");
-        }
-
-        // Delete from Firebase after successful sync
-        for (const scan of scans) {
-          await deleteScanFromFirebase(scan.id);
-        }
-
-        alert(`Đồng bộ thành công ${scans.length} bản ghi!`);
-        setUnsyncedCount(0);
-      } catch (err) {
-        console.error(err);
-        alert("Đã xảy ra lỗi khi đồng bộ: " + err.message);
-      } finally {
-        setSyncing(false);
-      }
-    },
-    onError: () => {
-      alert("Đăng nhập Google thất bại.");
-    }
-  });
 
   return (
     <div className="dashboard-card">
@@ -146,27 +79,16 @@ export default function Dashboard() {
 
       <div className="sync-section">
         <div className="sync-header">
-          <h3>Đồng bộ Google Sheets</h3>
-          <span style={{color: '#64748b', fontSize: '14px', fontWeight: '500'}}>
-            Đang chờ: <strong>{unsyncedCount}</strong> lượt quét
-          </span>
+          <h3>Trạng thái Đồng bộ</h3>
         </div>
-        <div className="form-group">
-          <label>Google Spreadsheet ID</label>
-          <input 
-            type="text" 
-            value={spreadsheetId} 
-            onChange={e => setSpreadsheetId(e.target.value)} 
-            placeholder="Ví dụ: 1BxiMVs0XRYFgwnTE91..." 
-          />
-        </div>
-        <button 
-          className="btn btn-secondary" 
-          onClick={() => loginAndSync()}
-          disabled={syncing}
-        >
-          {syncing ? 'Đang đồng bộ...' : 'Đăng nhập & Đồng bộ'}
-        </button>
+        <p style={{color: '#64748b', fontSize: '14px', lineHeight: '1.6'}}>
+          Hệ thống đang sử dụng <strong>Google Apps Script Webhook</strong>. 
+          Bất kỳ ai quét mã QR sẽ tự động được ghi nhận vào thẳng Google Sheets theo thời gian thực (real-time). 
+          Bạn không cần phải đăng nhập hay bấm đồng bộ thủ công nữa.
+        </p>
+        <p style={{color: '#64748b', fontSize: '14px', lineHeight: '1.6', marginTop: '10px'}}>
+          <em>Lưu ý: Đảm bảo bạn đã dán VITE_GOOGLE_WEB_APP_URL vào Vercel Environment Variables.</em>
+        </p>
       </div>
     </div>
   );

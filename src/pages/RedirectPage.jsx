@@ -1,13 +1,12 @@
 import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { logScanToFirebase } from '../firebase';
 
 export default function RedirectPage() {
   const [searchParams] = useSearchParams();
   
   useEffect(() => {
-    const campaign = searchParams.get('campaign');
-    const utmSource = searchParams.get('utm_source');
+    const campaign = searchParams.get('campaign') || 'unknown';
+    const utmSource = searchParams.get('utm_source') || 'unknown';
     const dest = searchParams.get('dest');
 
     if (!dest) {
@@ -15,21 +14,40 @@ export default function RedirectPage() {
       return;
     }
 
-    // Create a timeout promise that resolves after 2 seconds
-    const timeout = new Promise(resolve => setTimeout(resolve, 2000));
+    const webAppUrl = import.meta.env.VITE_GOOGLE_WEB_APP_URL;
+
+    // Redirect function
+    const doRedirect = () => {
+      window.location.href = dest;
+    };
+
+    if (!webAppUrl) {
+      console.warn("VITE_GOOGLE_WEB_APP_URL is not configured.");
+      doRedirect();
+      return;
+    }
+
+    // Prepare parameters for Google Apps Script
+    const timestamp = new Date().toISOString();
+    const userAgent = navigator.userAgent;
     
-    // Log to Firebase, but don't wait more than 2 seconds
+    const query = new URLSearchParams({
+      campaign: campaign,
+      utm_source: utmSource,
+      timestamp: timestamp,
+      userAgent: userAgent
+    });
+
+    const fullUrl = `${webAppUrl}?${query.toString()}`;
+
+    // Ping the Web App, limit wait to 1.5s
+    const timeout = new Promise(resolve => setTimeout(resolve, 1500));
+    
     Promise.race([
-      logScanToFirebase({
-        campaign: campaign || 'unknown',
-        utm_source: utmSource || 'unknown',
-        timestamp: new Date().toISOString(),
-        userAgent: navigator.userAgent
-      }),
+      fetch(fullUrl, { mode: 'no-cors' }),
       timeout
     ]).finally(() => {
-      // Redirect to destination guaranteed after max 2 seconds
-      window.location.href = dest;
+      doRedirect();
     });
 
   }, [searchParams]);
@@ -41,3 +59,4 @@ export default function RedirectPage() {
     </div>
   );
 }
+
