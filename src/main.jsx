@@ -19,7 +19,7 @@ import './index.css'
  Bước 8: Bấm Create. Sau đó copy chuỗi "Client ID" và dán đè vào chữ "YOUR_GOOGLE_CLIENT_ID_HERE..." ở bên dưới.
  =========================================
 */
-const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID_HERE.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID_HERE.apps.googleusercontent.com";
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
