@@ -15,13 +15,13 @@ import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "fireb
  =========================================
 */
 const firebaseConfig = {
-  apiKey: "AIzaSyCt_Rfad0310DDltseJghpvUGlOq1Vr8u8",
-  authDomain: "qrtracking-4e97d.firebaseapp.com",
-  projectId: "qrtracking-4e97d",
-  storageBucket: "qrtracking-4e97d.firebasestorage.app",
-  messagingSenderId: "941450086340",
-  appId: "1:941450086340:web:4af32a4b64f2e0b2efc691",
-  measurementId: "G-59HSQQ4GS0"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 const app = initializeApp(firebaseConfig);
