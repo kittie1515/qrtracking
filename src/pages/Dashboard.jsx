@@ -163,7 +163,7 @@ export default function Dashboard() {
         <button 
           className="btn btn-secondary" 
           onClick={() => loginAndSync()}
-          disabled={syncing || unsyncedCount === 0}
+          disabled={syncing}
         >
           {syncing ? 'Đang đồng bộ...' : 'Đăng nhập & Đồng bộ'}
         </button>
